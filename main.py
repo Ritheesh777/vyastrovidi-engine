@@ -6,7 +6,7 @@ import requests
 
 from calculations.core import (
     local_to_jd, get_planet_positions, get_ascendant, normalize, _ensure_ephe, get_sunrise_jd,
-    get_ayanamsa, AYANAMSA_NAME,
+    get_ayanamsa, AYANAMSA_NAME, get_gulika_mandi,
 )
 from calculations.panchang import get_panchang
 from calculations.vargas import compute_all_vargas, get_rasi_chart_layout
@@ -231,6 +231,7 @@ def generate_chart(req: ChartRequest):
         favourable = get_favourable_points(req.day, ascendant, planets)
         stone_recommendation = get_stone_recommendation(ascendant)
         sphutas = get_sphutas(planets)
+        gulika_mandi = get_gulika_mandi(jd, req.lat, req.lon, req.year, req.month, req.day)
         sade_sati = get_sade_sati(jd, planets["Moon"]["sign_index"])
         bhava_chalit = get_bhava_chalit(jd, req.lat, req.lon, planets, ascendant)
         kp = get_kp_details(jd, req.lat, req.lon, planets, ascendant)
@@ -349,6 +350,7 @@ def generate_chart(req: ChartRequest):
             "jaimini_karakas": jaimini_karakas,
             "jaimini_lagnas": jaimini_lagnas,
             "sphutas": sphutas,
+            "gulika_mandi": gulika_mandi,
             "favourable": favourable,
             "stone_recommendation": stone_recommendation,
             "sade_sati": sade_sati,

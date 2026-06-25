@@ -238,6 +238,47 @@ def get_sunrise_jd(jd: float, lat: float, lon: float) -> float:
     return result[1][0] if result[0] == 0 else jd
 
 
+def _sunset_jd(jd: float, lat: float, lon: float) -> float:
+    geopos = (lon, lat, 0)
+    flags = swe.CALC_SET | swe.BIT_DISC_CENTER | swe.BIT_NO_REFRACTION
+    result = swe.rise_trans(jd, swe.SUN, flags, geopos)
+    return result[1][0] if result[0] == 0 else jd + 0.5
+
+
+def get_gulika_mandi(jd: float, lat: float, lon: float, year: int, month: int, day: int) -> Dict:
+    """Gulika & Mandi (Maandi) — upagrahas ('sons of Saturn'). The day
+    (sunrise→sunset) or night (sunset→next sunrise) is split into 8 equal parts;
+    the part ruled by Saturn gives the point. Gulika = ascendant at the START of
+    Saturn's part, Mandi = ascendant at its END. Daytime uses the weekday-lord
+    order; nighttime starts from the lord of the 5th weekday."""
+    from datetime import timedelta
+    sr = get_sunrise_jd(jd, lat, lon)
+    bd = datetime(year, month, day)
+    if sr > jd:                                  # born before sunrise → previous Vedic day
+        sr = get_sunrise_jd(jd - 1, lat, lon)
+        bd = bd - timedelta(days=1)
+    ss = _sunset_jd(sr, lat, lon)
+    next_sr = get_sunrise_jd(ss, lat, lon)
+    weekday = (bd.weekday() + 1) % 7             # 0 = Sunday
+    SATURN = 6
+    if jd < ss:                                  # daytime birth
+        part = (ss - sr) / 8.0
+        idx = (SATURN - weekday) % 7
+        start = sr + idx * part
+    else:                                        # nighttime birth
+        part = (next_sr - ss) / 8.0
+        night_wd = (weekday + 4) % 7             # lord of the 5th weekday
+        idx = (SATURN - night_wd) % 7
+        start = ss + idx * part
+
+    def _pt(t: float) -> Dict:
+        a = get_ascendant(t, lat, lon)
+        return {"longitude": a["longitude"], "sign": a["sign"], "sign_index": a["sign_index"],
+                "degree_formatted": a["degree_formatted"], "nakshatra": a["nakshatra"]}
+
+    return {"gulika": _pt(start), "mandi": _pt(start + part)}
+
+
 def get_weekday(jd: float) -> str:
     """
     Compute weekday directly from Julian Day (no Python datetime — works for
