@@ -212,8 +212,10 @@ def get_sade_sati(jd_birth: float, moon_sign_idx: int) -> dict:
     """Scan Saturn's transit and label Sade-Sati / Shani periods."""
     periods = []
     step = 5.0  # days
-    jd = jd_birth - 5 * 365.25            # start a few years before birth
-    end = jd_birth + 90 * 365.25
+    # Assumed lifespan = 99 years: show all Saturn periods (and their phase
+    # sandhis) from the birth date up to birth + 99 years.
+    jd = jd_birth
+    end = jd_birth + 99 * 365.25
     cur_sign = _saturn_sign(jd)
     seg_start = jd
 
@@ -229,11 +231,14 @@ def get_sade_sati(jd_birth: float, moon_sign_idx: int) -> dict:
     while jd < end:
         jd += step
         s = _saturn_sign(jd)
-        if s != cur_sign:
+        if s == (cur_sign + 1) % 12:          # forward ingress into the next sign
             _record(cur_sign, seg_start, jd)
             cur_sign = s
             seg_start = jd
-    _record(cur_sign, seg_start, jd)
+        # Retrograde dips back into the previous sign are absorbed into the
+        # current period so each Saturn transit shows as one continuous block
+        # (no fragmentation), from its first entry to its final exit.
+    _record(cur_sign, seg_start, end)
 
     # Current status (today)
     now = swe.julday(*swe.revjul(swe.julday(2026, 5, 28, 0.0))[:3], 0.0)
